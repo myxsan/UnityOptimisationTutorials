@@ -4,15 +4,17 @@ using UnityEngine;
 
 public class UpdateWorld : MonoBehaviour
 {
-    GameObject world;
-    Vector2 lastPoint = Vector2.zero;
+    [SerializeField] GameObject world;
+    Vector2Int lastDrawnPoint = Vector2Int.zero;
+    Vector2Int lastErasedPoint = Vector2Int.zero;
     Texture2D texture; //Texture should be set to Read/Write and RGBA32bit in Inspector with no mipmaps
+    bool isDrawing = false;
+    bool isErasing = false;
 
     void Start()
     {
         Application.targetFrameRate = 150;
-        world = GameObject.Find("World");
-        texture = Instantiate(world.GetComponent<Renderer>().material.mainTexture) as Texture2D;
+        texture = (Texture2D)Instantiate(world.GetComponent<Renderer>().material.mainTexture);
 
         //add yellow cells using perlin noise to create some patches of "minerals"
         for (int y = 0; y < texture.height; y++)
@@ -28,73 +30,28 @@ public class UpdateWorld : MonoBehaviour
         texture.Apply();
     }
 
-    int CountNeighbourColor(int x, int y, Color col, Texture2D texture)
-    {
-        int count = 0;
-        //loop through all 8 neighbouring cells and if their colour
-        //is the one passed through then count it
-        for (int ny = -1; ny < 2; ny++)
-        {
-            for (int nx = 0 - 1; nx < 2; nx++)
-            {
-                if (ny == 0 && nx == 0) continue; //ignore cell you are looking at neighbours
-                if (texture.GetPixel(x + nx, y + ny) == col)
-                    count++;
-            }
-        }
-        return count;
-    }
-
-    void SimulateWorld(Texture2D texture)
-    {
-        for (int y = 0; y < texture.height; y++)
-        {
-            for (int x = 0; x < texture.width; x++)
-            {
-                //if a cell has more than 4 black neighbours make it blue
-                //Commercial Property
-                if (CountNeighbourColor(x, y, Color.black, texture) > 4 )
-                {
-                    texture.SetPixel(x, y, Color.blue);
-                }
-                //if a cell has a black neighbour and is not black itself
-                //set to green
-                //Residential Property
-                else if (CountNeighbourColor(x, y, Color.black, texture) > 0 && texture.GetPixel(x,y) == Color.white)
-                {
-                    texture.SetPixel(x, y, Color.green);
-                }
-                //if near a black cell but the cell is already yellow
-                //Mining Property
-                if (CountNeighbourColor(x, y, Color.black, texture) > 0 && texture.GetPixel(x, y) == Color.yellow)
-                {
-                    texture.SetPixel(x, y, Color.magenta);
-                }
-
-                //if a cell is blue, green or magenta and has no black next to it then it should die = turn white)
-                //if road is taken away the cell should die/deallocate property
-                if (CountNeighbourColor(x, y, Color.black, texture) == 0 &&
-                    (texture.GetPixel(x, y) == Color.green ||
-                    texture.GetPixel(x, y) == Color.blue ||
-                    texture.GetPixel(x, y) == Color.magenta))
-                {
-                    texture.SetPixel(x, y, Color.white);
-                }
-            }
-        }
-        texture.Apply();
-    }
-
-
     void Update()
     {
         //record start of mouse drawing (or erasing) to get the first position the mouse touches down
-        if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1) )
+        if (Input.GetMouseButtonDown(0))
         {
+            isDrawing = true;
             RaycastHit ray;
             if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out ray))
             {
-                lastPoint = new Vector2((int)(ray.textureCoord.x * texture.width),
+                lastDrawnPoint = new Vector2Int((int)(ray.textureCoord.x * texture.width),
+                                        (int)(ray.textureCoord.y * texture.height));
+            }
+            SimulateWorld(texture);
+        }
+
+        if(Input.GetMouseButtonDown(1))
+        {
+            isErasing = true;
+            RaycastHit ray;
+            if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out ray))
+            {
+                lastErasedPoint = new Vector2Int((int)(ray.textureCoord.x * texture.width),
                                         (int)(ray.textureCoord.y * texture.height));
             }
         }
@@ -108,9 +65,9 @@ public class UpdateWorld : MonoBehaviour
 
                 DrawPixelLine((int)(ray.textureCoord.x * texture.width),
                                    (int)(ray.textureCoord.y * texture.height),
-                                   (int)lastPoint.x, (int)lastPoint.y, Color.black, texture);
+                                   (int)lastDrawnPoint.x, (int)lastDrawnPoint.y, Color.black, texture);
                 texture.Apply();
-                lastPoint = new Vector2((int)(ray.textureCoord.x * texture.width),
+                lastDrawnPoint = new Vector2Int((int)(ray.textureCoord.x * texture.width),
                                    (int)(ray.textureCoord.y * texture.height));
             }
         }
@@ -124,10 +81,96 @@ public class UpdateWorld : MonoBehaviour
                 texture.SetPixel((int)(ray.textureCoord.x * texture.width),
                                    (int)(ray.textureCoord.y * texture.height), Color.white);
                 texture.Apply();
+                lastErasedPoint = new Vector2Int((int)(ray.textureCoord.x * texture.width),
+                                   (int)(ray.textureCoord.y * texture.height));
             }
         }
 
         SimulateWorld(texture);
+
+        if(Input.GetMouseButtonUp(0)) isDrawing = false;
+        if(Input.GetMouseButtonUp(1)) isErasing = false;
+    }
+
+    int CountNeighbourColor(Vector2Int basePixel, Color col, Texture2D texture)
+    {
+        int count = 0;
+        //loop through all 8 neighbouring cells and if their colour
+        //is the one passed through then count it
+        for (int ny = -1; ny < 2; ny++)
+        {
+            for (int nx = -1; nx < 2; nx++)
+            {
+                if (ny == 0 && nx == 0) continue; //ignore cell you are looking at neighbours
+                if (texture.GetPixel(basePixel.x + nx, basePixel.y + ny) == col)
+                    count++;
+            }
+        }
+        return count;
+    }
+
+    List<Vector2Int> GetNeighbours(Vector2Int basePixel)
+    {
+        List<Vector2Int> neighbors = new List<Vector2Int>();
+        //loop through all 8 neighbouring cells and add them to neigbors list
+        for (int ny = -1; ny < 2; ny++)
+        {
+            for (int nx = -1; nx < 2; nx++)
+            {
+                if (ny == 0 && nx == 0) continue; //ignore base pixel
+                
+                neighbors.Add(basePixel + new Vector2Int(nx,ny));
+            }
+        }
+        return neighbors;
+    }
+
+    void SimulateWorld(Texture2D texture)
+    {
+        if(isDrawing)
+        {
+            foreach(Vector2Int neighbor in GetNeighbours(lastDrawnPoint))
+            {
+                //if a cell has more than 4 black neighbours make it blue
+                //Commercial Property
+                if (CountNeighbourColor(neighbor, Color.black, texture) > 4 )
+                {
+                    texture.SetPixel(neighbor.x, neighbor.y, Color.blue);
+                }
+                //if a cell has a black neighbour and is not black itself
+                //set to green
+                //Residential Property
+                else if (CountNeighbourColor(neighbor, Color.black, texture) > 0 && texture.GetPixel(neighbor.x, neighbor.y) == Color.white)
+                {
+                    texture.SetPixel(neighbor.x, neighbor.y, Color.green);
+                }
+                //if near a black cell but the cell is already yellow
+                //Mining Property
+                if (CountNeighbourColor(neighbor, Color.black, texture) > 0 && texture.GetPixel(neighbor.x, neighbor.y) == Color.yellow)
+                {
+                    texture.SetPixel(neighbor.x, neighbor.y, Color.magenta);
+                }       
+            }
+        }
+
+        if(isErasing)
+        {
+            Debug.Log("erasing");
+            foreach(Vector2Int neighbor in GetNeighbours(lastErasedPoint))
+            {
+                //if a cell is blue, green or magenta and has no black next to it then it should die = turn white)
+                //if road is taken away the cell should die/deallocate property
+                if (CountNeighbourColor(neighbor, Color.black, texture) == 0 &&
+                    (texture.GetPixel(neighbor.x, neighbor.y) == Color.green ||
+                    texture.GetPixel(neighbor.x, neighbor.y) == Color.blue ||
+                    texture.GetPixel(neighbor.x, neighbor.y) == Color.magenta))
+                {
+                    texture.SetPixel(neighbor.x, neighbor.y, Color.white);
+                    Debug.Log("erased");
+                }
+            }
+        }
+        texture.Apply();
     }
 
     //Draw a pixel by pixel line between two points
