@@ -109,6 +109,7 @@ public class UpdateWorld : MonoBehaviour
         return count;
     }
 
+    //returns a neighbor list of last drawn point
     List<Vector2Int> GetNeighbours(Vector2Int basePixel)
     {
         List<Vector2Int> neighbors = new List<Vector2Int>();
@@ -129,7 +130,7 @@ public class UpdateWorld : MonoBehaviour
     {
         if(isDrawing)
         {
-            foreach(Vector2Int neighbor in GetNeighbours(lastDrawnPoint))
+            foreach(Vector2Int neighbor in GetNeighbours(lastDrawnPoint)) //checks all the neighbors for black pixels around them and painting according to it
             {
                 //if a cell has more than 4 black neighbours make it blue
                 //Commercial Property
@@ -156,7 +157,7 @@ public class UpdateWorld : MonoBehaviour
         if(isErasing)
         {
             Debug.Log("erasing");
-            foreach(Vector2Int neighbor in GetNeighbours(lastErasedPoint))
+            foreach(Vector2Int neighbor in GetNeighbours(lastErasedPoint)) // checks all the neighbors of the last erased point and paint them to white
             {
                 //if a cell is blue, green or magenta and has no black next to it then it should die = turn white)
                 //if road is taken away the cell should die/deallocate property
