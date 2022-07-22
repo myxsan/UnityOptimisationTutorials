@@ -42,7 +42,6 @@ public class UpdateWorld : MonoBehaviour
                 lastDrawnPoint = new Vector2Int((int)(ray.textureCoord.x * texture.width),
                                         (int)(ray.textureCoord.y * texture.height));
             }
-            SimulateWorld(texture);
         }
 
         if(Input.GetMouseButtonDown(1))
@@ -55,6 +54,7 @@ public class UpdateWorld : MonoBehaviour
                                         (int)(ray.textureCoord.y * texture.height));
             }
         }
+
         //draw a line between the last known location of the mouse and the current location
         if (Input.GetMouseButton(0))
         {
@@ -109,7 +109,7 @@ public class UpdateWorld : MonoBehaviour
         return count;
     }
 
-    //returns a neighbor list of last drawn point
+    //returns a neighbor list of a particular point
     List<Vector2Int> GetNeighbours(Vector2Int basePixel)
     {
         List<Vector2Int> neighbors = new List<Vector2Int>();
@@ -118,7 +118,7 @@ public class UpdateWorld : MonoBehaviour
         {
             for (int nx = -1; nx < 2; nx++)
             {
-                if (ny == 0 && nx == 0) continue; //ignore base pixel
+                if (ny == 0 && nx == 0) continue; //ignore base cell
                 
                 neighbors.Add(basePixel + new Vector2Int(nx,ny));
             }
@@ -130,7 +130,7 @@ public class UpdateWorld : MonoBehaviour
     {
         if(isDrawing)
         {
-            foreach(Vector2Int neighbor in GetNeighbours(lastDrawnPoint)) //checks all the neighbors for black pixels around them and painting according to it
+            foreach(Vector2Int neighbor in GetNeighbours(lastDrawnPoint)) //checks all the neighbors for black cells around them and painting according to it
             {
                 //if a cell has more than 4 black neighbours make it blue
                 //Commercial Property
@@ -156,7 +156,6 @@ public class UpdateWorld : MonoBehaviour
 
         if(isErasing)
         {
-            Debug.Log("erasing");
             foreach(Vector2Int neighbor in GetNeighbours(lastErasedPoint)) // checks all the neighbors of the last erased point and paint them to white
             {
                 //if a cell is blue, green or magenta and has no black next to it then it should die = turn white)
@@ -167,7 +166,6 @@ public class UpdateWorld : MonoBehaviour
                     texture.GetPixel(neighbor.x, neighbor.y) == Color.magenta))
                 {
                     texture.SetPixel(neighbor.x, neighbor.y, Color.white);
-                    Debug.Log("erased");
                 }
             }
         }
