@@ -7,8 +7,9 @@ public class TankAIBenchmark : MonoBehaviour
     GameObject[] tanks;
     public int numberOfTanks;
     public GameObject tankPrefab;
+    [SerializeField] float tankSpeed = 0.5f;
+    [SerializeField] Transform player;
 
-    // Start is called before the first frame update
     void Start()
     {
         tanks = new GameObject[numberOfTanks];
@@ -19,16 +20,14 @@ public class TankAIBenchmark : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
     void Update()
     {
         foreach (GameObject t in tanks)
         {
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)
             {
-                t.transform.LookAt(player.transform.position);
-                t.transform.Translate(0, 0, 0.05f);
+                t.transform.LookAt(player.position);
+                t.transform.Translate(0, 0, tankSpeed * Time.deltaTime);
             }
         } 
     }
