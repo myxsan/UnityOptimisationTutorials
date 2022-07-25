@@ -24,7 +24,7 @@ public class TankAIBenchmark : MonoBehaviour
     {
         foreach (GameObject t in tanks)
         {
-            if (player != null)
+            if (!ReferenceEquals(player, null))
             {
                 t.transform.LookAt(player.position);
                 t.transform.Translate(0, 0, tankSpeed * Time.deltaTime);
