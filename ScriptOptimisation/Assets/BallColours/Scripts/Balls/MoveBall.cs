@@ -7,14 +7,18 @@ public class MoveBall : MonoBehaviour
     Vector3 velocity;
     float sides = 30.0f;
     float speedMax = 0.3f;
+    int shaderColorPropertyID;
+    Material myMat;
+    Vector3 pos;
 
     void Start()
     {
-
         velocity = new Vector3(Random.Range(0.0f, speedMax),
                         Random.Range(0.0f, speedMax),
                         Random.Range(0.0f, speedMax));
-
+        
+        shaderColorPropertyID = Shader.PropertyToID("_Color");
+        myMat = this.GetComponent<Renderer>().material;
     }
 
     Color GetRandomColor()
@@ -26,35 +30,36 @@ public class MoveBall : MonoBehaviour
     void Update()
     {
         transform.Translate(velocity);
+        pos = transform.position;
 
-        if (transform.position.x > sides)
+        if (Mathf.Abs(pos.x) > sides)
         {
             velocity.x = -velocity.x;
         }
-        if (transform.position.x < -sides)
-        {
-            velocity.x = -velocity.x;
-        }
-        if (transform.position.y > sides)
-        {
-            velocity.y = -velocity.y;
-        }
-        if (transform.position.y < -sides)
+        // if (transform.position.x < -sides)
+        // {
+        //     velocity.x = -velocity.x;
+        // }
+        if (Mathf.Abs(pos.y) > sides)
         {
             velocity.y = -velocity.y;
         }
-        if (transform.position.z > sides)
+        // if (transform.position.y < -sides)
+        // {
+        //     velocity.y = -velocity.y;
+        // }
+        if (Mathf.Abs(pos.z) > sides)
         {
             velocity.z = -velocity.z;
         }
-        if (transform.position.z < -sides)
-        {
-            velocity.z = -velocity.z;
-        }
+        // if (transform.position.z < -sides)
+        // {
+        //     velocity.z = -velocity.z;
+        // }
 
-        this.GetComponent<Renderer>().material.SetColor("_Color", new Color(transform.position.x/sides,
-                                                                             transform.position.y/sides,
-                                                                           transform.position.z/sides));
+        myMat.SetColor(shaderColorPropertyID, new Color(pos.x/sides,
+                                                pos.y/sides,
+                                                pos.z/sides));
 
     }
 }
